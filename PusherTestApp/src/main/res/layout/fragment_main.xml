@@ -30,11 +30,12 @@
                 android:text="@string/label_pusher_status" />
 
             <TextView
+                android:id="@+id/pusher_status"
                 android:background="@drawable/rect_red"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="5"
-                android:text="@string/text_pusher_status" />
+                android:text="@string/disconnected" />
 
         </LinearLayout>
 
@@ -52,11 +53,12 @@
                 android:text="@string/label_net_status" />
 
             <TextView
-                android:background="@drawable/rect_green"
+                android:id="@+id/net_status"
+                android:background="@drawable/rect_red"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="5"
-                android:text="@string/text_net_status" />
+                android:text="@string/disconnected" />
 
         </LinearLayout>
 
@@ -68,36 +70,41 @@
         android:layout_height="wrap_content">
 
         <LinearLayout
-            android:orientation="vertical"
+            android:orientation="horizontal"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1">
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:padding="8dp"
                 android:text="@string/label_ssl" />
 
-            <Switch
+            <ToggleButton
+                android:id="@+id/toggle_ssl"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:onClick="onClick_Ssl" />
 
         </LinearLayout>
 
         <LinearLayout
-            android:orientation="vertical"
+            android:orientation="horizontal"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1">
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:padding="8dp"
                 android:text="@string/label_reconnect" />
 
-            <Switch
+            <ToggleButton
+                android:id="@+id/toggle_reconnect"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
 
@@ -110,10 +117,12 @@
         android:layout_height="wrap_content">
 
         <Button
+            android:id="@+id/btn_connect"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/text_btn_connect" />
+            android:text="@string/text_btn_connect"
+            android:onClick="onClick_Connect" />
 
         <Button
             android:layout_width="0dp"
