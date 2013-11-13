@@ -41,7 +41,7 @@ public class MainActivity extends ActionBarActivity
     private boolean subscriptionCreated = false;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -52,7 +52,7 @@ public class MainActivity extends ActionBarActivity
                     .commit();
         }
 
-        IntentFilter filter = new IntentFilter();
+        final IntentFilter filter = new IntentFilter();
         filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
         filter.addCategory("com.pusher.testapp.MainActivity");
         this.registerReceiver(new NetworkInfoReceiver(), filter);
@@ -75,7 +75,7 @@ public class MainActivity extends ActionBarActivity
     }
 
     private void updateOptionsFromUiState() {
-        ToggleButton ssl = (ToggleButton) findViewById(R.id.toggle_ssl);
+        final ToggleButton ssl = (ToggleButton) findViewById(R.id.toggle_ssl);
 
         options = new PusherOptions()
                 .setEncrypted(ssl.isChecked());
@@ -86,29 +86,28 @@ public class MainActivity extends ActionBarActivity
      */
 
     @Override
-    public void onConnectionStateChange(ConnectionStateChange connectionStateChange) {
+    public void onConnectionStateChange(final ConnectionStateChange connectionStateChange) {
+        final ConnectionState newState = connectionStateChange.getCurrentState();
         Log.i(TAG, "Got connection state change from [" + connectionStateChange.getPreviousState()
-                + "] to [" + connectionStateChange.getCurrentState() + "]");
+                + "] to [" + newState + "]");
 
-        log("State change: " + connectionStateChange.getCurrentState().name());
-
-        updateConnectionIndicator(R.id.pusher_status, connectionStateChange.getCurrentState() == ConnectionState.CONNECTED);
-
-        updateConnectButton(connectionStateChange.getCurrentState());
+        log("State change: " + newState.name());
+        updateConnectionIndicator(R.id.pusher_status, newState == ConnectionState.CONNECTED);
+        updateConnectButton(newState);
     }
 
     @Override
-    public void onSubscriptionSucceeded(String s) {
+    public void onSubscriptionSucceeded(final String s) {
         log("Subscription succeeded: " + s);
     }
 
     @Override
-    public void onEvent(String channel, String event, String data) {
+    public void onEvent(final String channel, final String event, final String data) {
         log("New event: " + data);
     }
 
     @Override
-    public void onError(String message, String code, Exception e) {
+    public void onError(final String message, final String code, final Exception e) {
         log("Error: [" + message + "] [" + code + "] [" + e + "]");
     }
 
@@ -141,7 +140,7 @@ public class MainActivity extends ActionBarActivity
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                TextView logs = (TextView)findViewById(R.id.log_view);
+                final TextView logs = (TextView)findViewById(R.id.log_view);
                 logs.setText("");
                 logs.invalidate();
             }
@@ -160,7 +159,7 @@ public class MainActivity extends ActionBarActivity
             @Override
             public void run() {
                 Log.i(TAG, "Updating connection indicator");
-                TextView view = (TextView) findViewById(target);
+                final TextView view = (TextView) findViewById(target);
                 view.setBackground(bg);
                 view.setText(text);
                 view.invalidate();
@@ -193,7 +192,7 @@ public class MainActivity extends ActionBarActivity
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Button connectBtn = (Button) findViewById(R.id.btn_connect);
+                final Button connectBtn = (Button) findViewById(R.id.btn_connect);
                 connectBtn.setText(text);
                 connectBtn.setEnabled(enabled);
                 connectBtn.invalidate();
@@ -205,7 +204,7 @@ public class MainActivity extends ActionBarActivity
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                TextView view = (TextView) findViewById(R.id.log_view);
+                final TextView view = (TextView) findViewById(R.id.log_view);
                 view.append(text + "\n");
 
                 final int scrollAmount = view.getLayout().getLineTop(view.getLineCount()) - view.getHeight();
@@ -216,9 +215,9 @@ public class MainActivity extends ActionBarActivity
         });
     }
 
-    public void updateNetStatus(final Context context) {
-        ConnectivityManager mgr = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo[] infos = mgr.getAllNetworkInfo();
+    private void updateNetStatus(final Context context) {
+        final ConnectivityManager mgr = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        final NetworkInfo[] infos = mgr.getAllNetworkInfo();
         boolean connected = false;
         for (NetworkInfo info : infos) {
             if (info.isConnected()) {
@@ -232,9 +231,8 @@ public class MainActivity extends ActionBarActivity
     }
 
     public class NetworkInfoReceiver extends BroadcastReceiver {
-
         @Override
-        public void onReceive(Context context, Intent intent) {
+        public void onReceive(final Context context, final Intent intent) {
             updateNetStatus(context);
         }
     }
@@ -244,18 +242,18 @@ public class MainActivity extends ActionBarActivity
      */
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
+    public boolean onCreateOptionsMenu(final Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    public boolean onOptionsItemSelected(final MenuItem item) {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
+        final int id = item.getItemId();
         if (id == R.id.action_settings) {
             return true;
         }
@@ -266,12 +264,10 @@ public class MainActivity extends ActionBarActivity
      * A placeholder fragment containing a simple view.
      */
     public class MainFragment extends Fragment {
-
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
             return inflater.inflate(R.layout.fragment_main, container, false);
         }
-
     }
 
 }
