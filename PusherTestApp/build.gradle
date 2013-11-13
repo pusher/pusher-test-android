@@ -26,4 +26,5 @@ dependencies {
 	compile 'com.android.support:appcompat-v7:18.0.0'
 	compile 'com.android.support:gridlayout-v7:18.0.0'
 	compile 'com.pusher:pusher-java-client:0.2.0-beta'
+    compile 'eu.lp0.slf4j:slf4j-android:1.7.5-0'
 }
