@@ -7,6 +7,7 @@ import android.content.IntentFilter;
 import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
@@ -28,13 +29,18 @@ import com.pusher.client.connection.ConnectionEventListener;
 import com.pusher.client.connection.ConnectionState;
 import com.pusher.client.connection.ConnectionStateChange;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+
 public class MainActivity extends ActionBarActivity
                           implements ConnectionEventListener, ChannelEventListener {
 
     private static final String TAG = "PUSHER";
-    private static final String API_KEY = "157a2f34672776fc4a73";
-    private static final String CHANNEL_NAME = "test-channel";
-    private static final String EVENT_NAME = "test-event";
+    private static final String API_KEY = "22364f2f790269bec0a0";
+    private static final String CHANNEL_NAME = "channel";
+    private static final String EVENT_NAME = "event";
 
     private Pusher pusher;
     private PusherOptions options = new PusherOptions();
@@ -111,6 +117,32 @@ public class MainActivity extends ActionBarActivity
         log("Error: [" + message + "] [" + code + "] [" + e + "]");
     }
 
+    /*
+     * Event trigger
+     */
+
+    private void triggerEvent() {
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... voids) {
+                try {
+                    HttpPost method = new HttpPost("http://test.pusher.com/hello?env=default");
+                    HttpClient client = new DefaultHttpClient();
+                    HttpResponse httpResponse = client.execute(method);
+                    Log.i(TAG, "http response: " + httpResponse.getStatusLine().toString());
+
+                    final int statusCode = httpResponse.getStatusLine().getStatusCode();
+                    if (statusCode != 200) {
+                        log("Error triggering event: API responded HTTP " + statusCode);
+                    }
+                }
+                catch (Exception e) {
+                    log("Error triggering event: " + e.toString());
+                }
+                return null;
+            }
+        }.execute();
+    }
 
     /*
      * UI callbacks
@@ -132,6 +164,10 @@ public class MainActivity extends ActionBarActivity
         // Ignore presses in other states, button should be disabled
     }
 
+    public void onClick_TriggerEvent(final View btnTriggerEvent) {
+        triggerEvent();
+    }
+
     public void onClick_Ssl(final View sslToggle) {
         updateOptionsFromUiState();
     }
@@ -146,6 +182,10 @@ public class MainActivity extends ActionBarActivity
             }
         });
     }
+
+    /*
+     * UI update
+     */
 
     private void updateConnectionIndicator(final int target, final boolean state) {
 
