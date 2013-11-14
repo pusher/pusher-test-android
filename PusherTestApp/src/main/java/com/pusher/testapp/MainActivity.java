@@ -37,13 +37,12 @@ import org.apache.http.impl.client.DefaultHttpClient;
 public class MainActivity extends ActionBarActivity
                           implements ConnectionEventListener, ChannelEventListener {
 
-    private static final String TAG = "PUSHER";
     private static final String API_KEY = "22364f2f790269bec0a0";
     private static final String CHANNEL_NAME = "channel";
     private static final String EVENT_NAME = "event";
 
     private Pusher pusher;
-    private PusherOptions options = new PusherOptions();
+    private PusherOptions options;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -61,8 +60,6 @@ public class MainActivity extends ActionBarActivity
         filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
         filter.addCategory("com.pusher.testapp.MainActivity");
         this.registerReceiver(new NetworkInfoReceiver(), filter);
-
-        pusher = createPusher();
     }
 
     @Override
@@ -71,49 +68,53 @@ public class MainActivity extends ActionBarActivity
 
         ((TextView)findViewById(R.id.log_view)).setMovementMethod(new ScrollingMovementMethod());
 
-        updateNetStatus(getApplicationContext());
+        createPusher();
     }
 
-    private Pusher createPusher() {
-        final Pusher pusher = new Pusher(API_KEY, options);
-        pusher.subscribe(CHANNEL_NAME, this, EVENT_NAME);
-        return pusher;
-    }
+    private void createPusher() {
+        // Potentially tear down existing instance
+        if (pusher != null) pusher.disconnect();
 
-    private void updateOptionsFromUiState() {
-        final ToggleButton ssl = (ToggleButton) findViewById(R.id.toggle_ssl);
-
+        final ToggleButton ssl = (ToggleButton)findViewById(R.id.toggle_ssl);
         options = new PusherOptions()
                 .setEncrypted(ssl.isChecked());
+
+        pusher = new Pusher(API_KEY, options);
+        pusher.subscribe(CHANNEL_NAME, this, EVENT_NAME);
     }
 
     /*
-     * PUSHER CALLBACKS
+     * Pusher CALLBACKS
      */
 
     @Override
     public void onConnectionStateChange(final ConnectionStateChange connectionStateChange) {
         final ConnectionState newState = connectionStateChange.getCurrentState();
-        Log.i(TAG, "Got connection state change from [" + connectionStateChange.getPreviousState()
-                + "] to [" + newState + "]");
 
-        log("State change: " + newState.name());
+        final StringBuilder sb = new StringBuilder("State change: ").append(newState.name());
+        if (newState == ConnectionState.CONNECTED) {
+            sb.append(" (")
+                    .append(options.isEncrypted() ? "SSL" : "Non SSL")
+                    .append(")");
+        }
+        log("Pusher", sb.toString());
+
         updateUiOnStateChange(newState);
     }
 
     @Override
     public void onSubscriptionSucceeded(final String s) {
-        log("Subscribed to: " + s);
+        log("Pusher", "Subscribed to: " + s);
     }
 
     @Override
     public void onEvent(final String channel, final String event, final String data) {
-        log("New event: " + data);
+        log("Pusher", "Event received: " + data);
     }
 
     @Override
     public void onError(final String message, final String code, final Exception e) {
-        log("Error: [" + message + "] [" + code + "] [" + e + "]");
+        log("Pusher", "Error: [" + message + "] [" + code + "] [" + e + "]");
     }
 
     /*
@@ -128,15 +129,15 @@ public class MainActivity extends ActionBarActivity
                     HttpPost method = new HttpPost("http://test.pusher.com/hello?env=default");
                     HttpClient client = new DefaultHttpClient();
                     HttpResponse httpResponse = client.execute(method);
-                    Log.i(TAG, "http response: " + httpResponse.getStatusLine().toString());
+                    log("Server", "triggering event via REST API");
 
                     final int statusCode = httpResponse.getStatusLine().getStatusCode();
                     if (statusCode != 200) {
-                        log("Error triggering event: API responded HTTP " + statusCode);
+                        log("Server", "Error triggering event: HTTP " + statusCode);
                     }
                 }
                 catch (Exception e) {
-                    log("Error triggering event: " + e.toString());
+                    log("Server", "Error triggering event: " + e.toString());
                 }
                 return null;
             }
@@ -148,8 +149,6 @@ public class MainActivity extends ActionBarActivity
      */
 
     public void onClick_Connect(final View btnConnect) {
-        Log.i(TAG, "Clicked connect button");
-
         if (pusher.getConnection().getState() == ConnectionState.DISCONNECTED) {
             pusher.connect(this);
         }
@@ -164,7 +163,8 @@ public class MainActivity extends ActionBarActivity
     }
 
     public void onClick_Ssl(final View sslToggle) {
-        updateOptionsFromUiState();
+        log("App", "Disconnecting to change SSL state");
+        createPusher();
     }
 
     public void onClick_ClearLog(final View btnClearLog) {
@@ -225,24 +225,31 @@ public class MainActivity extends ActionBarActivity
                 connectBtn.setEnabled(connectEnabled);
                 connectBtn.invalidate();
 
+                final ToggleButton sslToggle = (ToggleButton)findViewById(R.id.toggle_ssl);
+                sslToggle.setEnabled(connectEnabled);
+                sslToggle.invalidate();
+
                 final TextView pusherStatus = (TextView)findViewById(R.id.pusher_status);
-                pusherStatus.setBackground(indicatorBg);
+                pusherStatus.setBackgroundDrawable(indicatorBg);
                 pusherStatus.setText(indicatorText);
                 pusherStatus.invalidate();
             }
         });
     }
 
-    private void log(final String text) {
+    private void log(final String tag, final String text) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 final TextView view = (TextView) findViewById(R.id.log_view);
-                view.append(text + "\n");
+                view.append("[" + tag + "] " + text + "\n");
 
-                final int scrollAmount = view.getLayout().getLineTop(view.getLineCount()) - view.getHeight();
-                // if there is no need to scroll, scrollAmount will be <=0
-                view.scrollTo(0, scrollAmount > 0 ? scrollAmount : 0);
+                // Is sometimes null on startup, I can't fathom from the docs why,
+                // as we don't touch any of this stuff til after they do in the examples.
+                if (view.getLayout() != null) {
+                    final int scrollAmount = view.getLayout().getLineTop(view.getLineCount()) - view.getHeight();
+                    view.scrollTo(0, scrollAmount > 0 ? scrollAmount : 0);
+                }
                 view.invalidate();
             }
         });
@@ -256,26 +263,26 @@ public class MainActivity extends ActionBarActivity
 
         for (final NetworkInfo info : mgr.getAllNetworkInfo()) {
             if (info.isConnected()) {
-                Log.i(TAG, "Network [" + info.getTypeName() + "] reported as connected");
-                connectionType = "(" + info.getTypeName() + ")";
+                connectionType = info.getTypeName();
                 connected = true;
                 break;
             }
         }
 
-        final String text = connected ? "Connected " + connectionType : "Disconnected";
+        final String text = connected ? "Connected (" + connectionType + ")" : "Disconnected";
         final int bgResource = connected ? R.drawable.rect_green : R.drawable.rect_red;
 
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Log.i(TAG, "Updating connection indicator");
                 final TextView view = (TextView)findViewById(R.id.net_status);
-                view.setBackground(getResources().getDrawable(bgResource));
+                view.setBackgroundDrawable(getResources().getDrawable(bgResource));
                 view.setText(text);
                 view.invalidate();
             }
         });
+
+        log("Internet", text);
     }
 
     public class NetworkInfoReceiver extends BroadcastReceiver {
