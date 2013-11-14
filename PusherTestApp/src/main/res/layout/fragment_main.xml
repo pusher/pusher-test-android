@@ -86,10 +86,12 @@
                 android:id="@+id/toggle_ssl"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:checked="true"
                 android:onClick="onClick_Ssl" />
 
         </LinearLayout>
 
+        <!--
         <LinearLayout
             android:orientation="horizontal"
             android:layout_width="0dp"
@@ -109,6 +111,7 @@
                 android:layout_height="wrap_content" />
 
         </LinearLayout>
+        -->
 
     </LinearLayout>
 
@@ -125,10 +128,12 @@
             android:onClick="onClick_Connect" />
 
         <Button
+            android:id="@+id/btn_trigger"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/text_btn_event"
+            android:enabled="false"
             android:onClick="onClick_TriggerEvent"/>
 
     </LinearLayout>

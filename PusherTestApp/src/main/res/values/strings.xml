@@ -4,7 +4,7 @@
     <string name="app_name">Pusher Test App</string>
     <string name="action_settings">Settings</string>
     <string name="label_pusher_status">Pusher</string>
-    <string name="label_net_status">Network</string>
+    <string name="label_net_status">Internet</string>
     <string name="label_ssl">SSL</string>
     <string name="label_reconnect">Auto-reconnect</string>
     <string name="text_btn_connect">Connect</string>
@@ -14,6 +14,8 @@
 
     <string name="connected">Connected</string>
     <string name="disconnected">Disconnected</string>
+    <string name="connecting">Connecting</string>
+    <string name="disconnecting">Disconnecting</string>
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
 

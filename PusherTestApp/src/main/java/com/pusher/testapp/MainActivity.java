@@ -44,7 +44,6 @@ public class MainActivity extends ActionBarActivity
 
     private Pusher pusher;
     private PusherOptions options = new PusherOptions();
-    private boolean subscriptionCreated = false;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -76,8 +75,9 @@ public class MainActivity extends ActionBarActivity
     }
 
     private Pusher createPusher() {
-        subscriptionCreated = false;
-        return new Pusher(API_KEY, options);
+        final Pusher pusher = new Pusher(API_KEY, options);
+        pusher.subscribe(CHANNEL_NAME, this, EVENT_NAME);
+        return pusher;
     }
 
     private void updateOptionsFromUiState() {
@@ -98,13 +98,12 @@ public class MainActivity extends ActionBarActivity
                 + "] to [" + newState + "]");
 
         log("State change: " + newState.name());
-        updateConnectionIndicator(R.id.pusher_status, newState == ConnectionState.CONNECTED);
-        updateConnectButton(newState);
+        updateUiOnStateChange(newState);
     }
 
     @Override
     public void onSubscriptionSucceeded(final String s) {
-        log("Subscription succeeded: " + s);
+        log("Subscribed to: " + s);
     }
 
     @Override
@@ -153,10 +152,6 @@ public class MainActivity extends ActionBarActivity
 
         if (pusher.getConnection().getState() == ConnectionState.DISCONNECTED) {
             pusher.connect(this);
-            if (!subscriptionCreated) {
-                pusher.subscribe(CHANNEL_NAME, this, EVENT_NAME);
-                subscriptionCreated = true;
-            }
         }
         else if (pusher.getConnection().getState() == ConnectionState.CONNECTED) {
             pusher.disconnect();
@@ -187,43 +182,36 @@ public class MainActivity extends ActionBarActivity
      * UI update
      */
 
-    private void updateConnectionIndicator(final int target, final boolean state) {
-
-        final Drawable bg = state ? getResources().getDrawable(R.drawable.rect_green)
-                                  : getResources().getDrawable(R.drawable.rect_red);
-
-        final CharSequence text = state ? getResources().getText(R.string.connected)
-                                        : getResources().getText(R.string.disconnected);
-
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Log.i(TAG, "Updating connection indicator");
-                final TextView view = (TextView) findViewById(target);
-                view.setBackground(bg);
-                view.setText(text);
-                view.invalidate();
-            }
-        });
-    }
-
-    private void updateConnectButton(final ConnectionState state) {
-        final boolean enabled;
-        final CharSequence text;
+    private void updateUiOnStateChange(final ConnectionState state) {
+        final boolean connectEnabled;
+        final Drawable indicatorBg;
+        final CharSequence indicatorText;
+        final CharSequence connectText;
 
         switch (state) {
             case CONNECTED:
-                enabled = true;
-                text = getResources().getString(R.string.disconnect);
+                connectEnabled = true;
+                connectText = getResources().getString(R.string.disconnect);
+                indicatorBg = getResources().getDrawable(R.drawable.rect_green);
+                indicatorText = getResources().getString(R.string.connected);
                 break;
             case DISCONNECTED:
-                enabled = true;
-                text = getResources().getString(R.string.connect);
+                connectEnabled = true;
+                connectText = getResources().getString(R.string.connect);
+                indicatorBg = getResources().getDrawable(R.drawable.rect_red);
+                indicatorText = getResources().getString(R.string.disconnected);
                 break;
             case CONNECTING:
+                connectEnabled = false;
+                indicatorBg = getResources().getDrawable(R.drawable.rect_orange);
+                indicatorText = getResources().getString(R.string.connecting);
+                connectText = getResources().getString(R.string.connect);
+                break;
             case DISCONNECTING:
-                enabled = false;
-                text = getResources().getString(R.string.connect);
+                connectEnabled = false;
+                connectText = getResources().getString(R.string.connect);
+                indicatorBg = getResources().getDrawable(R.drawable.rect_orange);
+                indicatorText = getResources().getString(R.string.disconnecting);
                 break;
             default:
                 throw new RuntimeException("Notified of switch to unknown state [" + state + "]");
@@ -232,10 +220,15 @@ public class MainActivity extends ActionBarActivity
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                final Button connectBtn = (Button) findViewById(R.id.btn_connect);
-                connectBtn.setText(text);
-                connectBtn.setEnabled(enabled);
+                final Button connectBtn = (Button)findViewById(R.id.btn_connect);
+                connectBtn.setText(connectText);
+                connectBtn.setEnabled(connectEnabled);
                 connectBtn.invalidate();
+
+                final TextView pusherStatus = (TextView)findViewById(R.id.pusher_status);
+                pusherStatus.setBackground(indicatorBg);
+                pusherStatus.setText(indicatorText);
+                pusherStatus.invalidate();
             }
         });
     }
@@ -257,17 +250,32 @@ public class MainActivity extends ActionBarActivity
 
     private void updateNetStatus(final Context context) {
         final ConnectivityManager mgr = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        final NetworkInfo[] infos = mgr.getAllNetworkInfo();
+
         boolean connected = false;
-        for (NetworkInfo info : infos) {
+        String connectionType = "";
+
+        for (final NetworkInfo info : mgr.getAllNetworkInfo()) {
             if (info.isConnected()) {
                 Log.i(TAG, "Network [" + info.getTypeName() + "] reported as connected");
+                connectionType = "(" + info.getTypeName() + ")";
                 connected = true;
                 break;
             }
         }
 
-        updateConnectionIndicator(R.id.net_status, connected);
+        final String text = connected ? "Connected " + connectionType : "Disconnected";
+        final int bgResource = connected ? R.drawable.rect_green : R.drawable.rect_red;
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Log.i(TAG, "Updating connection indicator");
+                final TextView view = (TextView)findViewById(R.id.net_status);
+                view.setBackground(getResources().getDrawable(bgResource));
+                view.setText(text);
+                view.invalidate();
+            }
+        });
     }
 
     public class NetworkInfoReceiver extends BroadcastReceiver {
