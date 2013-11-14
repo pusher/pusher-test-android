@@ -7,12 +7,12 @@ import android.content.IntentFilter;
 import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.AsyncTask;
-import android.support.v7.app.ActionBarActivity;
-import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v7.app.ActionBarActivity;
 import android.text.method.ScrollingMovementMethod;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -176,6 +176,16 @@ public class MainActivity extends ActionBarActivity
                 logs.invalidate();
             }
         });
+    }
+
+    public void onClick_EmailLog(final View btnEmailLogs) {
+        final CharSequence logs = ((TextView)findViewById(R.id.log_view)).getText();
+
+        final Intent emailIntent = new Intent(Intent.ACTION_SENDTO,
+                Uri.fromParts("mailto", "support@pusher.com", null));
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Android test app logs");
+        emailIntent.putExtra(Intent.EXTRA_TEXT, logs);
+        startActivity(Intent.createChooser(emailIntent, "Send email..."));
     }
 
     /*
