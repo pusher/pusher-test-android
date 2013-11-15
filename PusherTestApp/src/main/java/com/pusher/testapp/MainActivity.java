@@ -38,6 +38,13 @@ public class MainActivity extends ActionBarActivity
     private static final String CHANNEL_NAME = "channel";
     private static final String EVENT_NAME = "event";
 
+    private TextView pusherStatus;
+    private TextView netStatus;
+    private TextView logView;
+    private ToggleButton sslToggle;
+    private Button connectBtn;
+    private Button triggerEventBtn;
+
     private Pusher pusher;
     private PusherOptions options;
 
@@ -51,9 +58,8 @@ public class MainActivity extends ActionBarActivity
         // Potentially tear down existing instance
         if (pusher != null) pusher.disconnect();
 
-        final ToggleButton ssl = (ToggleButton)findViewById(R.id.toggle_ssl);
         options = new PusherOptions()
-                .setEncrypted(ssl.isChecked());
+                .setEncrypted(sslToggle.isChecked());
 
         pusher = new Pusher(API_KEY, options);
         pusher.subscribe(CHANNEL_NAME, this, EVENT_NAME);
@@ -105,7 +111,7 @@ public class MainActivity extends ActionBarActivity
      * UI callbacks
      */
 
-    public void onClick_Connect(final View btnConnect) {
+    public void onClick_Connect(final View view) {
         if (pusher.getConnection().getState() == ConnectionState.DISCONNECTED) {
             log("App", "Connect button presses");
             pusher.connect(this);
@@ -117,23 +123,23 @@ public class MainActivity extends ActionBarActivity
         // Ignore presses in other states, button should be disabled
     }
 
-    public void onClick_Ssl(final View sslToggle) {
+    public void onClick_Ssl(final View view) {
+        log("App", "SSL toggled to " + sslToggle.isChecked());
         reconnect = true;
         createPusher();
     }
 
-    public void onClick_ClearLog(final View btnClearLog) {
+    public void onClick_ClearLog(final View view) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                final TextView logs = (TextView)findViewById(R.id.log_view);
-                logs.setText("");
-                logs.invalidate();
+                logView.setText("");
+                logView.invalidate();
             }
         });
     }
 
-    public void onClick_TriggerEvent(final View btnTriggerEvent) {
+    public void onClick_TriggerEvent(final View view) {
         new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... voids) {
@@ -156,8 +162,8 @@ public class MainActivity extends ActionBarActivity
         }.execute();
     }
 
-    public void onClick_EmailLog(final View btnEmailLogs) {
-        final CharSequence logs = ((TextView)findViewById(R.id.log_view)).getText();
+    public void onClick_EmailLog(final View view) {
+        final CharSequence logs = logView.getText();
 
         final Intent emailIntent = new Intent(Intent.ACTION_SENDTO,
                 Uri.fromParts("mailto", "support@pusher.com", null));
@@ -208,16 +214,13 @@ public class MainActivity extends ActionBarActivity
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                final Button connectBtn = (Button)findViewById(R.id.btn_connect);
                 connectBtn.setText(connectText);
                 connectBtn.setEnabled(connectEnabled);
                 connectBtn.invalidate();
 
-                final ToggleButton sslToggle = (ToggleButton)findViewById(R.id.toggle_ssl);
                 sslToggle.setEnabled(connectEnabled);
                 sslToggle.invalidate();
 
-                final TextView pusherStatus = (TextView)findViewById(R.id.pusher_status);
                 pusherStatus.setBackgroundDrawable(indicatorBg);
                 pusherStatus.setText(indicatorText);
                 pusherStatus.invalidate();
@@ -229,16 +232,16 @@ public class MainActivity extends ActionBarActivity
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                final TextView view = (TextView) findViewById(R.id.log_view);
-                view.append("[" + tag + "] " + text + "\n");
+                logView.append("[" + tag + "] " + text + "\n");
 
                 // Is sometimes null on startup, I can't fathom from the docs why,
                 // as we don't touch any of this stuff til after they do in the examples.
-                if (view.getLayout() != null) {
-                    final int scrollAmount = view.getLayout().getLineTop(view.getLineCount()) - view.getHeight();
-                    view.scrollTo(0, scrollAmount > 0 ? scrollAmount : 0);
+                if (logView.getLayout() != null) {
+                    final int scrollAmount =
+                            logView.getLayout().getLineTop(logView.getLineCount()) - logView.getHeight();
+                    logView.scrollTo(0, scrollAmount > 0 ? scrollAmount : 0);
                 }
-                view.invalidate();
+                logView.invalidate();
             }
         });
     }
@@ -252,10 +255,12 @@ public class MainActivity extends ActionBarActivity
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                final TextView view = (TextView)findViewById(R.id.net_status);
-                view.setBackgroundDrawable(getResources().getDrawable(bgResource));
-                view.setText(text);
-                view.invalidate();
+                netStatus.setBackgroundDrawable(getResources().getDrawable(bgResource));
+                netStatus.setText(text);
+                netStatus.invalidate();
+
+                triggerEventBtn.setEnabled(connected);
+                triggerEventBtn.invalidate();
             }
         });
 
@@ -267,7 +272,8 @@ public class MainActivity extends ActionBarActivity
 
         @Override
         public void onReceive(final Context context, final Intent intent) {
-            final ConnectivityManager mgr = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            final ConnectivityManager mgr =
+                    (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
 
             String connectionType = "";
 
@@ -299,7 +305,14 @@ public class MainActivity extends ActionBarActivity
         filter.addCategory("com.pusher.testapp.MainActivity");
         this.registerReceiver(new NetworkInfoReceiver(), filter);
 
-        ((TextView)findViewById(R.id.log_view)).setMovementMethod(new ScrollingMovementMethod());
+        this.pusherStatus = (TextView)findViewById(R.id.pusher_status);
+        this.netStatus = (TextView)findViewById(R.id.net_status);
+        this.logView = (TextView)findViewById(R.id.log_view);
+        this.connectBtn = (Button)findViewById(R.id.btn_connect);
+        this.triggerEventBtn = (Button)findViewById(R.id.btn_trigger);
+        this.sslToggle = (ToggleButton)findViewById(R.id.toggle_ssl);
+
+        this.logView.setMovementMethod(new ScrollingMovementMethod());
 
         createPusher();
     }
