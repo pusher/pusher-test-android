@@ -102,10 +102,38 @@ public class MainActivity extends ActionBarActivity
     }
 
     /*
-     * Event trigger
+     * UI callbacks
      */
 
-    private void triggerEvent() {
+    public void onClick_Connect(final View btnConnect) {
+        if (pusher.getConnection().getState() == ConnectionState.DISCONNECTED) {
+            log("App", "Connect button presses");
+            pusher.connect(this);
+        }
+        else if (pusher.getConnection().getState() == ConnectionState.CONNECTED) {
+            log("App", "Disconnect button pressed");
+            pusher.disconnect();
+        }
+        // Ignore presses in other states, button should be disabled
+    }
+
+    public void onClick_Ssl(final View sslToggle) {
+        reconnect = true;
+        createPusher();
+    }
+
+    public void onClick_ClearLog(final View btnClearLog) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                final TextView logs = (TextView)findViewById(R.id.log_view);
+                logs.setText("");
+                logs.invalidate();
+            }
+        });
+    }
+
+    public void onClick_TriggerEvent(final View btnTriggerEvent) {
         new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... voids) {
@@ -126,42 +154,6 @@ public class MainActivity extends ActionBarActivity
                 return null;
             }
         }.execute();
-    }
-
-    /*
-     * UI callbacks
-     */
-
-    public void onClick_Connect(final View btnConnect) {
-        if (pusher.getConnection().getState() == ConnectionState.DISCONNECTED) {
-            log("App", "Connect button presses");
-            pusher.connect(this);
-        }
-        else if (pusher.getConnection().getState() == ConnectionState.CONNECTED) {
-            log("App", "Disconnect button pressed");
-            pusher.disconnect();
-        }
-        // Ignore presses in other states, button should be disabled
-    }
-
-    public void onClick_TriggerEvent(final View btnTriggerEvent) {
-        triggerEvent();
-    }
-
-    public void onClick_Ssl(final View sslToggle) {
-        reconnect = true;
-        createPusher();
-    }
-
-    public void onClick_ClearLog(final View btnClearLog) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                final TextView logs = (TextView)findViewById(R.id.log_view);
-                logs.setText("");
-                logs.invalidate();
-            }
-        });
     }
 
     public void onClick_EmailLog(final View btnEmailLogs) {
