@@ -34,6 +34,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 public class MainActivity extends ActionBarActivity
                           implements ConnectionEventListener, ChannelEventListener {
 
+    private static final String STATE_KEY_CONNECTED = "CONN";
     private static final String API_KEY = "22364f2f790269bec0a0";
     private static final String CHANNEL_NAME = "channel";
     private static final String EVENT_NAME = "event";
@@ -49,10 +50,11 @@ public class MainActivity extends ActionBarActivity
     private PusherOptions options;
 
     /**
-     * Reconnect immediately on receiving disconnected state transition if this flag is set.
+     * Reconnect immediately on receiving disconnected state transition.
      * Used to toggle SSL use on connection.
      */
-    private boolean reconnect = false;
+    private boolean reconnectOnCompletedDisconnection = false;
+
 
     private void createPusher() {
         // Potentially tear down existing instance
@@ -83,8 +85,8 @@ public class MainActivity extends ActionBarActivity
 
         updateUiOnStateChange(newState);
 
-        if (newState == ConnectionState.DISCONNECTED && reconnect) {
-            reconnect = false;
+        if (newState == ConnectionState.DISCONNECTED && reconnectOnCompletedDisconnection) {
+            reconnectOnCompletedDisconnection = false;
             // We received this update from the previous pusher instance which we tore
             // down to change the SSL option. Now that it is fully disconnected, we call
             // connect on the new instance we replaced it with.
@@ -125,7 +127,7 @@ public class MainActivity extends ActionBarActivity
 
     public void onClick_Ssl(final View view) {
         log("App", "SSL toggled to " + sslToggle.isChecked());
-        reconnect = true;
+        reconnectOnCompletedDisconnection = true;
         createPusher();
     }
 
@@ -298,6 +300,7 @@ public class MainActivity extends ActionBarActivity
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
 
         final IntentFilter filter = new IntentFilter();
@@ -315,44 +318,67 @@ public class MainActivity extends ActionBarActivity
         this.logView.setMovementMethod(new ScrollingMovementMethod());
 
         createPusher();
+
+        if (savedInstanceState != null
+                && savedInstanceState.getBoolean(STATE_KEY_CONNECTED)) {
+
+            log("App", "Restoring connection from before Activity destruction");
+            pusher.connect();
+        }
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        log("App", "Started");
+        log("App", "Starting");
     }
 
     @Override
     protected void onPause() {
+        log("App", "Pausing");
         super.onPause();
-        log("App", "Paused");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        log("App", "Resumed");
+        log("App", "Resuming");
     }
 
     @Override
     protected void onStop() {
+        log("App", "Stopping");
         super.onStop();
-        log("App", "Stopped");
-
-        // If we are not to leak resources, we need to release them when onStop is called on us.
-        // This method tears down the WebSocket connection and terminates the associated threads.
-        pusher.disconnect();
     }
 
     @Override
     protected void onRestart() {
         super.onRestart();
-        log("App", "Restarted");
+        log("App", "Restarting");
+    }
 
-        // On restart, the Pusher instance still knows about our registered subscriptions,
-        // so all we need to do to pick up where we left off is call connect
-        pusher.connect();
+    @Override
+    protected void onSaveInstanceState(final Bundle outState) {
+        outState.putBoolean(
+                STATE_KEY_CONNECTED,
+                pusher.getConnection().getState() == ConnectionState.CONNECTED
+        );
+
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onDestroy() {
+        // Release resources
+        // This method tears down the WebSocket connection and terminates the associated threads.
+        if (pusher.getConnection().getState() != ConnectionState.DISCONNECTED
+                && pusher.getConnection().getState() != ConnectionState.DISCONNECTING) {
+
+            log("App", "Disconnecting in preparation for destroy"); // No one is likely to see this
+            pusher.disconnect();
+        }
+
+        super.onDestroy();
     }
 
     /*
