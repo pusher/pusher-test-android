@@ -41,20 +41,11 @@ public class MainActivity extends ActionBarActivity
     private Pusher pusher;
     private PusherOptions options;
 
-    @Override
-    protected void onCreate(final Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        final IntentFilter filter = new IntentFilter();
-        filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
-        filter.addCategory("com.pusher.testapp.MainActivity");
-        this.registerReceiver(new NetworkInfoReceiver(), filter);
-
-        ((TextView)findViewById(R.id.log_view)).setMovementMethod(new ScrollingMovementMethod());
-
-        createPusher();
-    }
+    /**
+     * Reconnect immediately on receiving disconnected state transition if this flag is set.
+     * Used to toggle SSL use on connection.
+     */
+    private boolean reconnect = false;
 
     private void createPusher() {
         // Potentially tear down existing instance
@@ -85,6 +76,14 @@ public class MainActivity extends ActionBarActivity
         log("Pusher", sb.toString());
 
         updateUiOnStateChange(newState);
+
+        if (newState == ConnectionState.DISCONNECTED && reconnect) {
+            reconnect = false;
+            // We received this update from the previous pusher instance which we tore
+            // down to change the SSL option. Now that it is fully disconnected, we call
+            // connect on the new instance we replaced it with.
+            pusher.connect(this);
+        }
     }
 
     @Override
@@ -111,17 +110,17 @@ public class MainActivity extends ActionBarActivity
             @Override
             protected Void doInBackground(Void... voids) {
                 try {
+                    log("Server", "triggering event via REST API");
                     HttpPost method = new HttpPost("http://test.pusher.com/hello?env=default");
                     HttpClient client = new DefaultHttpClient();
                     HttpResponse httpResponse = client.execute(method);
-                    log("Server", "triggering event via REST API");
 
                     final int statusCode = httpResponse.getStatusLine().getStatusCode();
                     if (statusCode != 200) {
                         log("Server", "Error triggering event: HTTP " + statusCode);
                     }
                 }
-                catch (Exception e) {
+                catch (final Exception e) {
                     log("Server", "Error triggering event: " + e.toString());
                 }
                 return null;
@@ -135,9 +134,11 @@ public class MainActivity extends ActionBarActivity
 
     public void onClick_Connect(final View btnConnect) {
         if (pusher.getConnection().getState() == ConnectionState.DISCONNECTED) {
+            log("App", "Connect button presses");
             pusher.connect(this);
         }
         else if (pusher.getConnection().getState() == ConnectionState.CONNECTED) {
+            log("App", "Disconnect button pressed");
             pusher.disconnect();
         }
         // Ignore presses in other states, button should be disabled
@@ -148,7 +149,7 @@ public class MainActivity extends ActionBarActivity
     }
 
     public void onClick_Ssl(final View sslToggle) {
-        log("App", "Disconnecting to change SSL state");
+        reconnect = true;
         createPusher();
     }
 
@@ -250,19 +251,8 @@ public class MainActivity extends ActionBarActivity
         });
     }
 
-    private void updateNetStatus(final Context context) {
-        final ConnectivityManager mgr = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        boolean connected = false;
-        String connectionType = "";
-
-        for (final NetworkInfo info : mgr.getAllNetworkInfo()) {
-            if (info.isConnected()) {
-                connectionType = info.getTypeName();
-                connected = true;
-                break;
-            }
-        }
+    private void updateNetStatus(final String connectionType) {
+        final boolean connected = connectionType.length() > 0;
 
         final String text = connected ? "Connected (" + connectionType + ")" : "Disconnected";
         final int bgResource = connected ? R.drawable.rect_green : R.drawable.rect_red;
@@ -281,17 +271,84 @@ public class MainActivity extends ActionBarActivity
     }
 
     public class NetworkInfoReceiver extends BroadcastReceiver {
+        private String currentlyConnectedType = "";
+
         @Override
         public void onReceive(final Context context, final Intent intent) {
-            updateNetStatus(context);
+            final ConnectivityManager mgr = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+            String connectionType = "";
+
+            for (final NetworkInfo info : mgr.getAllNetworkInfo()) {
+                if (info.isConnected()) {
+                    connectionType = info.getTypeName();
+                    break;
+                }
+            }
+
+            if (!currentlyConnectedType.equals(connectionType)) {
+                currentlyConnectedType = connectionType;
+                updateNetStatus(connectionType);
+            }
         }
     }
 
     /*
-     * Hide/show
+     * App Lifecycle
      */
 
+    @Override
+    protected void onCreate(final Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
+        final IntentFilter filter = new IntentFilter();
+        filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
+        filter.addCategory("com.pusher.testapp.MainActivity");
+        this.registerReceiver(new NetworkInfoReceiver(), filter);
+
+        ((TextView)findViewById(R.id.log_view)).setMovementMethod(new ScrollingMovementMethod());
+
+        createPusher();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        log("App", "Started");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        log("App", "Paused");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        log("App", "Resumed");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        log("App", "Stopped");
+
+        // If we are not to leak resources, we need to release them when onStop is called on us.
+        // This method tears down the WebSocket connection and terminates the associated threads.
+        pusher.disconnect();
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        log("App", "Restarted");
+
+        // On restart, the Pusher instance still knows about our registered subscriptions,
+        // so all we need to do to pick up where we left off is call connect
+        pusher.connect();
+    }
 
     /*
      * UI Boilerplate

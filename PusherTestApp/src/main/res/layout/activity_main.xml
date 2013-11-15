@@ -133,7 +133,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:text="@string/text_btn_event"
-        android:onClick="onClick_TriggerEvent"/>
+        android:onClick="onClick_TriggerEvent" />
 
 </LinearLayout>
 
@@ -142,12 +142,13 @@
     android:background="@drawable/rect_white"
     android:layout_width="match_parent"
     android:layout_height="0dp"
-    android:layout_weight="1" >
+    android:layout_weight="1">
 
     <TextView
         android:id="@+id/log_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:textIsSelectable="true" />
 
 </FrameLayout>
 
