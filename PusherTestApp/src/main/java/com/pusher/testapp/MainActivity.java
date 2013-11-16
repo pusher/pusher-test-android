@@ -12,7 +12,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.text.method.ScrollingMovementMethod;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -32,6 +31,10 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 public class MainActivity extends ActionBarActivity
                           implements ConnectionEventListener, ChannelEventListener {
 
@@ -39,6 +42,8 @@ public class MainActivity extends ActionBarActivity
     private static final String API_KEY = "22364f2f790269bec0a0";
     private static final String CHANNEL_NAME = "channel";
     private static final String EVENT_NAME = "event";
+
+    private static final DateFormat DATE_FORMAT = new SimpleDateFormat("kk:mm:ss:SSS");
 
     private TextView pusherStatus;
     private TextView netStatus;
@@ -84,7 +89,7 @@ public class MainActivity extends ActionBarActivity
                     .append(options.isEncrypted() ? "SSL" : "Non SSL")
                     .append(")");
         }
-        log("Pusher", sb.toString());
+        log("P", sb.toString());
 
         updateUiOnStateChange(newState);
 
@@ -99,17 +104,17 @@ public class MainActivity extends ActionBarActivity
 
     @Override
     public void onSubscriptionSucceeded(final String s) {
-        log("Pusher", "Subscribed to: " + s);
+        log("P", "Subscribed to: " + s);
     }
 
     @Override
     public void onEvent(final String channel, final String event, final String data) {
-        log("Pusher", "Event received: " + data);
+        log("P", "Event received: " + data);
     }
 
     @Override
     public void onError(final String message, final String code, final Exception e) {
-        log("Pusher", "Error: [" + message + "] [" + code + "] [" + e + "]");
+        log("P", "Error: [" + message + "] [" + code + "] [" + e + "]");
     }
 
     /*
@@ -118,18 +123,18 @@ public class MainActivity extends ActionBarActivity
 
     public void onClick_Connect(final View view) {
         if (pusher.getConnection().getState() == ConnectionState.DISCONNECTED) {
-            log("App", "Connect button presses");
+            log("A", "Connect button presses");
             pusher.connect(this);
         }
         else if (pusher.getConnection().getState() == ConnectionState.CONNECTED) {
-            log("App", "Disconnect button pressed");
+            log("A", "Disconnect button pressed");
             pusher.disconnect();
         }
         // Ignore presses in other states, button should be disabled
     }
 
     public void onClick_Ssl(final View view) {
-        log("App", "SSL toggled to " + sslToggle.isChecked());
+        log("A", "SSL toggled to " + sslToggle.isChecked());
         reconnectOnCompletedDisconnection = true;
         createPusher();
     }
@@ -149,18 +154,18 @@ public class MainActivity extends ActionBarActivity
             @Override
             protected Void doInBackground(Void... voids) {
                 try {
-                    log("Server", "triggering event via REST API");
+                    log("S", "triggering event via REST API");
                     HttpPost method = new HttpPost("http://test.pusher.com/hello?env=default");
                     HttpClient client = new DefaultHttpClient();
                     HttpResponse httpResponse = client.execute(method);
 
                     final int statusCode = httpResponse.getStatusLine().getStatusCode();
                     if (statusCode != 200) {
-                        log("Server", "Error triggering event: HTTP " + statusCode);
+                        log("S", "Error triggering event: HTTP " + statusCode);
                     }
                 }
                 catch (final Exception e) {
-                    log("Server", "Error triggering event: " + e.toString());
+                    log("S", "Error triggering event: " + e.toString());
                 }
                 return null;
             }
@@ -237,7 +242,7 @@ public class MainActivity extends ActionBarActivity
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                logView.append("[" + tag + "] " + text + "\n");
+                logView.append(DATE_FORMAT.format(new Date()) + " [" + tag + "] " + text + "\n");
 
                 // Is sometimes null on startup, I can't fathom from the docs why,
                 // as we don't touch any of this stuff til after they do in the examples.
@@ -269,7 +274,7 @@ public class MainActivity extends ActionBarActivity
             }
         });
 
-        log("Internet", text);
+        log("N", text);
     }
 
     public class NetworkInfoReceiver extends BroadcastReceiver {
@@ -326,7 +331,7 @@ public class MainActivity extends ActionBarActivity
         if (savedInstanceState != null
                 && savedInstanceState.getBoolean(STATE_KEY_CONNECTED)) {
 
-            log("App", "Restoring connection from before Activity destruction");
+            log("A", "Restoring connection from before Activity destruction");
             pusher.connect();
         }
     }
@@ -334,31 +339,31 @@ public class MainActivity extends ActionBarActivity
     @Override
     protected void onStart() {
         super.onStart();
-        log("App", "Starting");
+        log("A", "Starting");
     }
 
     @Override
     protected void onPause() {
-        log("App", "Pausing");
+        log("A", "Pausing");
         super.onPause();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        log("App", "Resuming");
+        log("A", "Resuming");
     }
 
     @Override
     protected void onStop() {
-        log("App", "Stopping");
+        log("A", "Stopping");
         super.onStop();
     }
 
     @Override
     protected void onRestart() {
         super.onRestart();
-        log("App", "Restarting");
+        log("A", "Restarting");
     }
 
     @Override
@@ -378,7 +383,7 @@ public class MainActivity extends ActionBarActivity
         if (pusher.getConnection().getState() != ConnectionState.DISCONNECTED
                 && pusher.getConnection().getState() != ConnectionState.DISCONNECTING) {
 
-            log("App", "Disconnecting in preparation for destroy"); // No one is likely to see this
+            log("A", "Disconnecting in preparation for destroy"); // No one is likely to see this
             pusher.disconnect();
         }
 
