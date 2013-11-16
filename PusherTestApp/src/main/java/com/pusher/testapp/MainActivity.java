@@ -46,6 +46,8 @@ public class MainActivity extends ActionBarActivity
     private Button connectBtn;
     private Button triggerEventBtn;
 
+    private BroadcastReceiver broadcastReceiver;
+
     private Pusher pusher;
     private PusherOptions options;
 
@@ -303,10 +305,11 @@ public class MainActivity extends ActionBarActivity
 
         setContentView(R.layout.activity_main);
 
+        this.broadcastReceiver = new NetworkInfoReceiver();
         final IntentFilter filter = new IntentFilter();
         filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
         filter.addCategory("com.pusher.testapp.MainActivity");
-        this.registerReceiver(new NetworkInfoReceiver(), filter);
+        this.registerReceiver(broadcastReceiver, filter);
 
         this.pusherStatus = (TextView)findViewById(R.id.pusher_status);
         this.netStatus = (TextView)findViewById(R.id.net_status);
@@ -377,6 +380,8 @@ public class MainActivity extends ActionBarActivity
             log("App", "Disconnecting in preparation for destroy"); // No one is likely to see this
             pusher.disconnect();
         }
+
+        unregisterReceiver(broadcastReceiver);
 
         super.onDestroy();
     }
