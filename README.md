@@ -10,7 +10,3 @@ Available on the [Play Store]() < Coming soon.
 - Test reconnection when internet connectivity is lost 
 - Test reconnection if the app is backgrounded
 
-## Development
-
-Add a gradle plugin for your IDE ("idea" and Android Studio recommended) to the build.gradle in order to generate the appropriate project files
-The project build is as the default created by the Android Studio
