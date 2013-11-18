@@ -123,7 +123,7 @@ public class MainActivity extends ActionBarActivity
 
     public void onClick_Connect(final View view) {
         if (pusher.getConnection().getState() == ConnectionState.DISCONNECTED) {
-            log("A", "Connect button presses");
+            log("A", "Connect button pressed");
             pusher.connect(this);
         }
         else if (pusher.getConnection().getState() == ConnectionState.CONNECTED) {
