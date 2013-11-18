@@ -19,4 +19,12 @@
     <string name="disconnect">Disconnect</string>
     <string name="action_about">About</string>
 
+
+    <string name="label_build_using">
+        Built using pusher-java-client:
+        \nhttp://github.com/pusher/pusher-java-client
+    </string>
+    <string name="email_pusher">support@pusher.com</string>
+    <string name="weburl_pusher">http://pusher.com</string>
+
 </resources>
