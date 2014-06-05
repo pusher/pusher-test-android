@@ -10,3 +10,10 @@ Available on the [Play store](https://play.google.com/store/apps/details?id=com.
 - Test reconnection when internet connectivity is lost 
 - Test reconnection if the app is backgrounded
 
+## Installation
+
+1. Install [Android Studio](http://developer.android.com/sdk/installing/studio.html)
+2. Import the project files
+3. Make sure the right version of the Android SDK build-tools are installed
+4. Build
+5. Run in emulator or on device
