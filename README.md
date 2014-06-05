@@ -14,6 +14,6 @@ Available on the [Play store](https://play.google.com/store/apps/details?id=com.
 
 1. Install [Android Studio](http://developer.android.com/sdk/installing/studio.html)
 2. Import the project files
-3. Make sure the right version of the Android SDK build-tools are installed
+3. Install the right version of the Android SDK build-tools using the [SDK Manager](http://developer.android.com/tools/help/sdk-manager.html)
 4. Build
 5. Run in emulator or on device
